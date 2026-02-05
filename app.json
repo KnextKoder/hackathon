@@ -18,7 +18,8 @@
         {
           "microphonePermission": "This app needs access to your microphone to record voice notes."
         }
-      ]
+      ],
+      "expo-location"
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -34,12 +35,15 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record voice notes."
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record voice notes.",
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to send emergency services to your exact position."
       }
     },
     "android": {
       "permissions": [
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

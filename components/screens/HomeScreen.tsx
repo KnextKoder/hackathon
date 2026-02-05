@@ -9,6 +9,7 @@ import {
     setAudioModeAsync,
     useAudioRecorderState
 } from 'expo-audio'
+import * as Location from 'expo-location'
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -22,6 +23,7 @@ import Animated, {
 export default function HomeScreen() {
     const { user } = useUser()
     const [isSending, setIsSending] = React.useState(false)
+    const [location, setLocation] = React.useState<Location.LocationObject | null>(null)
 
     const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
     const recorderState = useAudioRecorderState(audioRecorder)
@@ -96,6 +98,13 @@ export default function HomeScreen() {
                 name: 'emergency_audio.m4a',
             } as any);
 
+            // Add location data if available
+            if (location) {
+                formData.append('latitude', location.coords.latitude.toString());
+                formData.append('longitude', location.coords.longitude.toString());
+                console.log('Attaching location:', location.coords.latitude, location.coords.longitude);
+            }
+
             const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3000';
             const vercelBypass = process.env.EXPO_PUBLIC_VERCEL_DEPLOYMENT_BYPASS_SECRET
             console.log('Server URL and Vercel Bypass:', serverUrl, vercelBypass);
@@ -131,11 +140,31 @@ export default function HomeScreen() {
 
     const startRecording = async () => {
         try {
-            const permission = await AudioModule.requestRecordingPermissionsAsync()
-            if (!permission.granted) {
+            // Request multiple permissions concurrently
+            const [audioPermission, locationPermission] = await Promise.all([
+                AudioModule.requestRecordingPermissionsAsync(),
+                Location.requestForegroundPermissionsAsync()
+            ]);
+
+            if (!audioPermission.granted) {
                 Alert.alert('Permission denied', 'Allow microphone access to record.')
                 return
             }
+
+            if (!locationPermission.granted) {
+                Alert.alert('Location required', 'Sending location is essential for emergency response.')
+                // We proceed but with a warning, or you could return here
+            }
+
+            // Start fetching location immediately when recording starts
+            // We don't await it here so it doesn't delay the recording start
+            Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+                .then(loc => {
+                    console.log('Location fetched:', loc.coords.latitude, loc.coords.longitude);
+                    setLocation(loc);
+                })
+                .catch(err => console.error('Failed to fetch location', err));
+
             await audioRecorder.prepareToRecordAsync()
             audioRecorder.record()
         } catch (err) {
